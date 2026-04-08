@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Multi-Agent Preference Simulation System: Architecture & Operation Guide</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;600&family=Pretendard:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* ── CSS Variables ── */
+  :root {
+    --bg: #0f1115;
+    --bg2: #181b21;
+    --bg3: #22262e;
+    --border: rgba(255,255,255,0.08);
+    --text: #e2e4e9;
+    --text2: #a0a5b1;
+    --text3: #6b7280;
+    --accent: #63b3ed;
+    --accent-dim: rgba(99, 179, 237, 0.15);
+    
+    --orch: #4A90D9;
+    --perc: #7ED321;
+    --cog:  #9B59B6;
+    --emo:  #E74C3C;
+    --goal: #F39C12;
+    --intent: #1ABC9C;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Pretendard', -apple-system, sans-serif;
+    font-size: 15px;
+    line-height: 1.75;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 0 5% 120px;
+  }
+
+  /* ── Header ── */
+  .header {
+    padding: 80px 0 50px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 50px;
+  }
+  .doc-type {
+    font-size: 12px;
+    letter-spacing: 0.15em;
+    color: var(--accent);
+    text-transform: uppercase;
+    font-weight: 600;
+    margin-bottom: 16px;
+  }
+  h1 {
+    font-family: 'Noto Serif KR', serif;
+    font-size: clamp(28px, 4vw, 40px);
+    font-weight: 600;
+    line-height: 1.3;
+    color: #fff;
+    margin-bottom: 20px;
+    letter-spacing: -0.02em;
+  }
+  .lead {
+    font-size: 16px;
+    color: var(--text2);
+    max-width: 760px;
+    line-height: 1.8;
+  }
+
+  h2 {
+    font-size: 20px;
+    font-weight: 600;
+    color: #fff;
+    margin: 60px 0 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  h2::before {
+    content: '';
+    display: block;
+    width: 24px;
+    height: 3px;
+    background: var(--accent);
+    border-radius: 2px;
+  }
+
+  /* ── Cards ── */
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin: 24px 0;
+  }
+  @media(max-width: 600px) { .grid { grid-template-columns: 1fr; } }
+
+  .role-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 24px;
+    position: relative;
+    overflow: hidden;
+  }
+  .role-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 4px; height: 100%;
+    background: var(--c);
+  }
+  .role-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .role-desc {
+    font-size: 14px;
+    color: var(--text2);
+    line-height: 1.6;
+    margin-bottom: 16px;
+  }
+  
+  .output-req {
+    background: rgba(0,0,0,0.2);
+    border-radius: 6px;
+    padding: 12px;
+    font-family: 'SF Mono', Consolas, monospace;
+    font-size: 12px;
+    color: var(--text3);
+    line-height: 1.5;
+  }
+  .output-req span {
+    color: #fff;
+  }
+
+  /* ── Phase Blocks ── */
+  .phase-container {
+    margin: 40px 0;
+  }
+  .phase-box {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 32px;
+    margin-bottom: 24px;
+    position: relative;
+  }
+  .phase-badge {
+    position: absolute;
+    top: -12px; left: 32px;
+    background: var(--accent);
+    color: var(--bg);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    padding: 4px 12px;
+    border-radius: 20px;
+    text-transform: uppercase;
+  }
+  .phase-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 12px;
+  }
+
+  /* ── Detailed Loop Explanation ── */
+  .loop-cycle {
+    background: var(--bg3);
+    border: 1px solid rgba(74, 144, 217, 0.3);
+    border-radius: 12px;
+    padding: 40px;
+    margin: 40px 0;
+  }
+  .loop-header {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+  .loop-header h3 {
+    color: #fff;
+    font-size: 20px;
+    margin-bottom: 8px;
+  }
+  .loop-header p {
+    color: var(--text2);
+    font-size: 14px;
+  }
+
+  .step-row {
+    display: flex;
+    margin-bottom: 24px;
+    position: relative;
+  }
+  .step-row:last-child { margin-bottom: 0; }
+  
+  .step-number {
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    color: var(--accent);
+    margin-right: 20px;
+    position: relative;
+    z-index: 2;
+  }
+  .step-row:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    top: 36px; left: 17.5px;
+    width: 1px; height: calc(100% - 12px);
+    background: dashed 1px var(--border);
+    z-index: 1;
+  }
+
+  .step-content {
+    flex: 1;
+    background: var(--bg2);
+    padding: 20px 24px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+  }
+  .step-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 8px;
+  }
+  .step-text {
+    font-size: 14px;
+    color: var(--text2);
+    margin-bottom: 0;
+  }
+
+  /* ── Orchestrator Special ── */
+  .orch-callout {
+    background: rgba(74, 144, 217, 0.08);
+    border: 1px solid rgba(74, 144, 217, 0.2);
+    border-radius: 8px;
+    padding: 24px;
+    margin: 24px 0;
+  }
+  .orch-callout h4 {
+    color: var(--orch);
+    font-size: 16px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .orch-callout ul {
+    margin-left: 20px;
+    color: var(--text2);
+    font-size: 14px;
+    line-height: 1.7;
+  }
+  .orch-callout ul li { margin-bottom: 6px; }
+
+  /* ── Utility ── */
+  .highlight { color: #fff; font-weight: 500; }
+</style>
+</head>
+<body>
+
+<div class="container">
+  
+  <header class="header">
+    <div class="doc-type">Architecture & Implementation Guide</div>
+    <h1>Multi-Agent Preference Simulation System</h1>
+    <p class="lead">
+      본 문서는 설계된 아키텍처 요구사항에 따라 <strong>Dynamic Interaction Network</strong>를 기반으로 구현된 Preference Simulation System의 핵심 동작 원리와 에이전트 명세(Agent Specifications)를 설명합니다. 각 에이전트는 고정된 파이프라인이 아닌 Orchestrator의 통제 하에 실시간으로 상호작용하며 최종 선호도(Preference Response)를 도출합니다.
+    </p>
+  </header>
+
+  <!-- 1. Agent Definitions -->
+  <section>
+    <h2>1. System Architecture & Agent Definitions</h2>
+    <p>시스템은 전체 의사결정 에피소드를 통제하는 1개의 Orchestrator Agent와, 서로 다른 인지적 역할을 수행하며 동적으로 상호작용하는 5개의 Functional Agents로 구성되어 있습니다.</p>
+
+    <div class="grid">
+      <!-- Orchestrator -->
+      <div class="role-card" style="--c: var(--orch); grid-column: 1 / -1; background: rgba(74, 144, 217, 0.05);">
+        <div class="role-title">🎯 1. Orchestrator Agent</div>
+        <div class="role-desc">
+          단순한 순차적 파이프라인의 첫 번째 단계가 아닌, <strong>상위 조율 메커니즘(Higher-level coordination mechanism)</strong>으로 기능합니다. 전체 의사결정 에피소드를 모니터링하며, 페르소나와 맥락에 맞춰 에이전트 활성화(Activation control), 가중치 조정(Weighting adjustment), 충돌 해소(Conflict resolution), 그리고 중간 신호들의 통합(Integration)을 담당합니다.
+        </div>
+        <div class="output-req">
+          &lt;Orchestrator&gt;<br>
+          <span>- Decision frame:</span><br>
+          <span>- Activated agents and relative weights:</span><br>
+          <span>- Major conflicts detected:</span><br>
+          <span>- Conflict resolution logic:</span><br>
+          <span>- Integrated control summary:</span>
+        </div>
+      </div>
+      
+      <!-- Perception -->
+      <div class="role-card" style="--c: var(--perc)">
+        <div class="role-title">👁️ 2. Situation Perception Agent</div>
+        <div class="role-desc">
+          모든 정보를 병렬적으로 처리하지 않고, 선택적 주의(Selective attention)에 입각하여 해당 맥락에서 <strong>가장 현저성(Salience) 높은 환경 및 기능적 신호</strong>를 포착합니다.
+        </div>
+        <div class="output-req">
+          &lt;Perception&gt;<br>
+          <span>- Salient signals:</span><br>
+          <span>- Attention priority:</span><br>
+          <span>- Ignored / background signals:</span>
+        </div>
+      </div>
+
+      <!-- Cognition -->
+      <div class="role-card" style="--c: var(--cog)">
+        <div class="role-title">🧠 3. Cognitive Agent</div>
+        <div class="role-desc">
+          상황을 이성적으로 해석하여 대상이 페르소나에게 가지는 의미와 트레이드오프를 구성합니다. 비교 논리, 불확실성, 속성 가중치를 반영하여 <strong>평가적 함의(Evaluative implications)</strong>를 도출합니다.
+        </div>
+        <div class="output-req">
+          &lt;Cognition&gt;<br>
+          <span>- Situation interpretation:</span><br>
+          <span>- Key trade-offs:</span><br>
+          <span>- Evaluation logic:</span><br>
+          <span>- Contextual / social implications:</span>
+        </div>
+      </div>
+
+      <!-- Emotion -->
+      <div class="role-card" style="--c: var(--emo)">
+        <div class="role-title">❤️ 4. Emotion Agent</div>
+        <div class="role-desc">
+          기분, 피로도, 스트레스 등 선행 상태(Antecedent state)가 유발하는 감정적 반응(Affective response)을 생성하고, 이러한 감정 상태가 <strong>판단을 어떻게 조절(Modulation)하는지</strong> 모델링합니다.
+        </div>
+        <div class="output-req">
+          &lt;Emotion&gt;<br>
+          <span>- Emotional state:</span><br>
+          <span>- Affective reaction to the feature:</span><br>
+          <span>- Emotional modulation of judgment:</span>
+        </div>
+      </div>
+
+      <!-- Goal -->
+      <div class="role-card" style="--c: var(--goal)">
+        <div class="role-title">🏹 5. Goal Agent</div>
+        <div class="role-desc">
+          인지와 감정의 출력을 바탕으로 현재 맥락에서 획득, 보호, 회피, 최적화하고자 하는 동기(Motives)를 <strong>우선순위화(Ranked)</strong>하여 활성화된 의사결정 기준을 설정합니다.
+        </div>
+        <div class="output-req">
+          &lt;Goal&gt;<br>
+          <span>- Ranked goals:</span><br>
+          <span>- Dominant motive:</span><br>
+          <span>- Decision criteria activated:</span>
+        </div>
+      </div>
+
+      <!-- Intention -->
+      <div class="role-card" style="--c: var(--intent)">
+        <div class="role-title">💡 6. Intention Agent</div>
+        <div class="role-desc">
+          현재 지배적인 동기 구조를 구체적인 평가 의도(Evaluative intention)로 변환합니다. 최종적으로 대상 태스크(기능/제품)에 대한 태도(Liking, Disliking, Hesitation, Exploration)와 선호 형성의 준비도를 확립합니다.
+        </div>
+        <div class="output-req">
+          &lt;Intention&gt;<br>
+          <span>- Behavioral / evaluative intention:</span><br>
+          <span>- Evaluation tendency:</span><br>
+          <span>- Readiness of preference:</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. Execution Flow -->
+  <section>
+    <h2>2. Execution Flow: 3-Phase Architecture</h2>
+    <p>본 시스템은 고정된 파이프라인(Rigid step-by-step pipeline)을 거부하고, 페르소나와 동적 맥락에 기반한 상호작용 네트워크를 구축하기 위해 세 가지 Phase로 실행됩니다.</p>
+
+    <div class="phase-container">
+      <div class="phase-box">
+        <div class="phase-badge">Phase 1</div>
+        <div class="phase-title">Orchestrator Initialization</div>
+        <p style="color:var(--text2); font-size:14px; margin-bottom:0;">
+          Orchestrator Agent가 페르소나, 동적 맥락, 태스크(Feature)를 종합적으로 분석하여 <strong>Decision Frame</strong>을 수립합니다. 상황의 특성에 따라 가장 심리학적 타당성이 높은(Psychological realism) 첫 번째 기능적 에이전트를 동적으로 결정하고 초기 가중치를 설정합니다.
+        </p>
+      </div>
+
+      <div class="phase-box" style="border-color: rgba(74, 144, 217, 0.4); box-shadow: 0 0 20px rgba(74, 144, 217, 0.05);">
+        <div class="phase-badge" style="background: var(--orch);">Phase 2</div>
+        <div class="phase-title">Dynamic Interaction Network (Core Loop)</div>
+        <p style="color:var(--text2); font-size:14px; margin-bottom:0;">
+          5개의 기능 에이전트 간의 재귀적 상호작용(Recursive influence)이 일어나는 핵심 구간입니다. 한 에이전트의 출력이 완료될 때마다 Orchestrator가 개입하여 다음 라우팅 경로를 통제합니다. 모든 5개 에이전트가 최소 1회 이상 고유의 출력을 기여(Distinct outputs)하도록 보장됩니다.
+        </p>
+      </div>
+
+      <div class="phase-box">
+        <div class="phase-badge">Phase 3</div>
+        <div class="phase-title">Preference Integration & Scoring</div>
+        <p style="color:var(--text2); font-size:14px; margin-bottom:0;">
+          충돌 해소 및 상호작용이 수렴(Convergence)되면 Orchestrator가 최종 평가 리포트를 생성합니다. 통합된 Evaluative state를 기반으로 Task-oriented Preference Score (0~100)와 Label을 산출하며, 이 결과는 페르소나, 맥락, 감정, 태스크의 인과적 정합성(Causal coherence)을 철저히 반영합니다.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. Dynamic Loop Deep-Dive -->
+  <section>
+    <h2>3. Implementation Details: Dynamic Routing Protocol</h2>
+    <p>요청하신 <strong>Interaction Principle</strong>을 구현하기 위해, 시스템은 내부적으로 다음과 같은 라우팅 프로토콜을 수행합니다.</p>
+
+    <!-- Callout replacing the basic explanation -->
+    <div class="orch-callout">
+      <h4>💡 Dynamic Interaction Network의 제어 방식</h4>
+      <p style="font-size:14px; color:var(--text); margin-bottom:12px; line-height: 1.6;">
+        요구사항에 명시된 바와 같이, 5개의 기능 에이전트는 결코 <strong>고정된 선형 파이프라인(Fixed sequence)</strong>으로 동작하지 않습니다. Orchestrator는 매 턴마다 누적된 <code>Debate History</code>를 평가하여 다음과 같은 재귀적 영향(Recursive influence)을 동적으로 구현합니다.
+      </p>
+      <ul>
+        <li>Cognition이 완전히 안정화되기 전에 Perception이 <strong>Emotion</strong>을 먼저 활성화하는 경우 (예: 높은 스트레스 맥락)</li>
+        <li>초기의 긍정적 Affective response를 <strong>Cognition</strong>의 트레이드오프 분석이 압도(Override)하는 경우</li>
+        <li><strong>Goal</strong>의 동기 우선순위가 다시 Perception의 주의 집중(Attention priority) 방향을 재조정하는 경우</li>
+        <li>Cognition과 Emotion 간의 Conflict가 감지되었을 때, <strong>Intention</strong>의 확립이 지연(Hesitation)되는 경우</li>
+      </ul>
+    </div>
+
+    <div class="loop-cycle" style="margin-top:0;">
+      <div class="loop-header">
+        <h3>Routing Step Analysis (1 Cycle)</h3>
+        <p>Phase 2에서 Orchestrator가 제어하는 단일 루프의 논리적 흐름입니다.</p>
+      </div>
+
+      <div class="step-row">
+        <div class="step-number">1</div>
+        <div class="step-content">
+          <div class="step-title">Agent Output Generation</div>
+          <div class="step-text">
+            이전 턴에서 Orchestrator에 의해 지목된 에이전트(Target Agent)가 누적된 컨텍스트와 자신의 System Prompt를 기반으로 고유의 출력 요건(Output requirements)을 생성합니다. 일반적인 요약(Generic summaries)을 지양하고 페르소나 특성에 기반한 구체적 판단을 출력합니다.
+          </div>
+        </div>
+      </div>
+
+      <div class="step-row">
+        <div class="step-number">2</div>
+        <div class="step-content">
+          <div class="step-title">State & History Update</div>
+          <div class="step-text">
+            생성된 에이전트의 응답이 시스템의 글로벌 컨텍스트(Debate History)에 병합됩니다. 이는 후속 에이전트들이 이전 에이전트의 상태 변화(예: Emotion state shift)를 인지하고 상호작용하기 위한 기반 데이터가 됩니다.
+          </div>
+        </div>
+      </div>
+
+      <div class="step-row">
+        <div class="step-number">3</div>
+        <div class="step-content">
+          <div class="step-title">Orchestrator Conflict Detection & Weighting</div>
+          <div class="step-text">
+            Orchestrator가 새롭게 업데이트된 컨텍스트를 분석하여, 에이전트 간의 <strong>Major conflicts (의견 충돌 및 모순)</strong>를 탐지하고 현시점에서 가장 강력한 영향력을 행사하는 에이전트의 가중치를 재조정합니다.
+          </div>
+        </div>
+      </div>
+
+      <div class="step-row">
+        <div class="step-number">4</div>
+        <div class="step-content">
+          <div class="step-title">Next Agent Dispatch (Structured Output)</div>
+          <div class="step-text">
+            충돌 해소(Conflict resolution) 및 선호 상태 도출을 위해 <strong>가장 논리적으로 타당한 다음 에이전트를 결정</strong>합니다. API 응답의 파싱 오류를 방지하기 위해 <code>{"next": "Target_Agent", "prompt": "Context_specific_instruction"}</code> 형태의 JSON Schema 규격을 강제하여 시스템 실행의 안정성을 보장합니다.
+          </div>
+        </div>
+      </div>
+      
+    </div> <!-- /loop-cycle -->
+  </section>
+
+</div>
+
+</body>
+</html>
